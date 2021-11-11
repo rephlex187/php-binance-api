@@ -10,12 +10,13 @@
  * ============================================================
  * A curl HTTP REST wrapper for the binance currency exchange
  */
+
 namespace Binance;
 
 use Exception;
 
 // PHP version check
-if (version_compare(phpversion(), '7.0', '<=')) {
+if (version_compare(phpversion(), '7.4', '<=')) {
     fwrite(STDERR, "Hi, PHP " . phpversion() . " support will be removed very soon as part of continued development.\n");
     fwrite(STDERR, "Please consider upgrading.\n");
 }
@@ -29,41 +30,202 @@ if (version_compare(phpversion(), '7.0', '<=')) {
  */
 class API
 {
-    protected $base = 'https://api.binance.com/api/'; // /< REST endpoint for the currency exchange
-    protected $baseTestnet = 'https://testnet.binance.vision/api/'; // /< Testnet REST endpoint for the currency exchange
-    protected $wapi = 'https://api.binance.com/wapi/'; // /< REST endpoint for the withdrawals
-    protected $sapi = 'https://api.binance.com/sapi/'; // /< REST endpoint for the supporting network API
-    protected $fapi = 'https://fapi.binance.com/'; // /< REST endpoint for the futures API
-    protected $bapi = 'https://www.binance.com/bapi/'; // /< REST endpoint for the internal Binance API
-    protected $stream = 'wss://stream.binance.com:9443/ws/'; // /< Endpoint for establishing websocket connections
-    protected $streamTestnet = 'wss://testnet.binance.vision/ws/'; // /< Testnet endpoint for establishing websocket connections
-    protected $api_key; // /< API key that you created in the binance website member area
-    protected $api_secret; // /< API secret that was given to you when you created the api key
-    protected $useTestnet = false; // /< Enable/disable testnet (https://testnet.binance.vision/)
-    protected $depthCache = []; // /< Websockets depth cache
-    protected $depthQueue = []; // /< Websockets depth queue
-    protected $chartQueue = []; // /< Websockets chart queue
-    protected $charts = []; // /< Websockets chart data
-    protected $curlOpts = []; // /< User defined curl coptions
-    protected $info = [
-        "timeOffset" => 0,
+    /**
+     * REST endpoint for the currency exchange
+     * 
+     * @var string
+     */
+    protected string $base = 'https://api.binance.com/api/';
+
+    /**
+     * Testnet REST endpoint for the currency exchange
+     * 
+     * @var string
+     */
+    protected string $baseTestnet = 'https://testnet.binance.vision/api/';
+
+    /**
+     * REST endpoint for the withdrawals
+     * 
+     * @var string
+     */
+    protected string $wapi = 'https://api.binance.com/wapi/';
+
+    /**
+     * REST endpoint for the supporting network API
+     * 
+     * @var string
+     */
+    protected string $sapi = 'https://api.binance.com/sapi/';
+
+    /**
+     * REST endpoint for the futures API
+     * 
+     * @var string
+     */
+    protected string $fapi = 'https://fapi.binance.com/';
+
+    /**
+     * REST endpoint for the internal Binance API
+     * 
+     * @var string
+     */
+    protected string $bapi = 'https://www.binance.com/bapi/';
+
+    /**
+     * Endpoint for establishing websocket connections
+     * 
+     * @var string
+     */
+    protected string $stream = 'wss://stream.binance.com:9443/ws/';
+
+    /**
+     * Testnet endpoint for establishing websocket connections
+     * 
+     * @var string
+     */
+    protected string $streamTestnet = 'wss://testnet.binance.vision/ws/';
+
+    /**
+     * API key that you created in the binance website member area
+     * 
+     * @var string
+     */
+    protected string $api_key;
+
+    /**
+     * API secret that was given to you when you created the api key
+     * 
+     * @var string
+     */
+    protected string $api_secret;
+
+    /**
+     * Enable/disable testnet (https://testnet.binance.vision/)
+     * 
+     * @var bool
+     */
+    protected bool $useTestnet = false;
+
+    /**
+     * Websockets depth cache
+     * 
+     * @var array<int>
+     */
+    protected array $depthCache = [];
+
+    /**
+     * Websockets depth queue
+     * 
+     * @var array<mixed>
+     */
+    protected array $depthQueue = [];
+
+    /**
+     * Websockets chart queue
+     * 
+     * @var array<int>
+     */
+    protected array $chartQueue = [];
+
+    /**
+     * Websockets chart data
+     * 
+     * @var array<mixed>
+     */
+    protected array $charts = [];
+
+    /**
+     * User defined curl coptions
+     * 
+     * @var array<string,mixed>
+     */
+    protected array $curlOpts = [];
+
+    /**
+     * @var array<string,int>
+     */
+    protected array $info = [
+        "timeOffset" => 0
     ]; // /< Additional connection options
-    protected $proxyConf = null; // /< Used for story the proxy configuration
-    protected $caOverride = false; // /< set this if you donnot wish to use CA bundle auto download feature
-    protected $transfered = 0; // /< This stores the amount of bytes transfered
-    protected $requestCount = 0; // /< This stores the amount of API requests
-    protected $httpDebug = false; // /< If you enable this, curl will output debugging information
-    protected $subscriptions = []; // /< View all websocket subscriptions
-    protected $btc_value = 0.00; // /< value of available assets
+
+
+    /**
+     * Used for story the proxy configuration
+     * 
+     * @var mixed
+     */
+    protected $proxyConf = null;
+
+    /**
+     * set this if you donnot wish to use CA bundle auto download feature
+     * 
+     * @var bool
+     */
+    protected bool $caOverride = false;
+
+
+    /**
+     * This stores the amount of bytes transfered
+     * 
+     * @var int
+     */
+    protected int $transfered = 0;
+
+    /**
+     *  This stores the amount of API requests
+     * 
+     * @var int
+     */
+    protected int $requestCount = 0;
+
+    /**
+     * If you enable this, curl will output debugging information
+     * 
+     * @var bool
+     */
+    protected bool $httpDebug = false;
+
+    /**
+     * View all websocket subscriptions
+     * 
+     * @var array<string,bool>
+     */
+    protected $subscriptions = [];
+
+    /**
+     * Value of available assets
+     * 
+     * @var float
+     */
+    protected $btc_value = 0.00;
+
+    /**
+     * Value of available assets
+     * 
+     * @var float
+     */
     protected $btc_total = 0.00;
 
-    // /< value of available onOrder assets
-    
-    protected $exchangeInfo = null;
+    /**
+     * @var array<mixed>
+     */
+    protected $exchangeInfo = [];
+
+    /**
+     * @var array<string,mixed>
+     */
     protected $lastRequest = [];
 
-    protected $xMbxUsedWeight = 0;
-    protected $xMbxUsedWeight1m = 0;
+    /**
+     * @var int
+     */
+    protected int $xMbxUsedWeight = 0;
+
+    /**
+     * @var int
+     */
+    protected int $xMbxUsedWeight1m = 0;
 
     /**
      * Constructor for the class,
@@ -107,24 +269,24 @@ class API
     /**
      * magic get for protected and protected members
      *
-     * @param $file string the name of the property to return
-     * @return null
+     * @param string $member string the name of the property to return
+     * 
+     * @return mixed
      */
-    public function __get(string $member)
+    public function __get(string $member): mixed
     {
-        if (property_exists($this, $member)) {
-            return $this->$member;
-        }
-        return null;
+        return property_exists($this, $member) ? $this->$member : null;
     }
 
     /**
      * magic set for protected and protected members
      *
-     * @param $member string the name of the member property
-     * @param $value the value of the member property
+     * @param string $member string the name of the member property
+     * @param mixed $value the value of the member property
+     * 
+     * @return void
      */
-    public function __set(string $member, $value)
+    public function __set(string $member, mixed $value): void
     {
         $this->$member = $value;
     }
@@ -134,22 +296,33 @@ class API
      * to load the api_key and api_secret from the users home directory in the file
      * ~/jaggedsoft/php-binance-api.json
      *
-     * @param $file string file location
-     * @return null
+     * @param string $file string file location
+     * 
+     * @return void
      */
-    protected function setupApiConfigFromFile(string $file = null)
+    protected function setupApiConfigFromFile(string $file = null): void
     {
         $file = is_null($file) ? getenv("HOME") . "/.config/jaggedsoft/php-binance-api.json" : $file;
 
         if (empty($this->api_key) === false || empty($this->api_secret) === false) {
             return;
         }
+
         if (file_exists($file) === false) {
             echo "Unable to load config from: " . $file . PHP_EOL;
             echo "Detected no API KEY or SECRET, all signed requests will fail" . PHP_EOL;
             return;
         }
-        $contents = json_decode(file_get_contents($file), true);
+
+        $data = file_get_contents($file);
+
+        if(!$data || !is_string($data)) {
+            echo "Unable to load file";
+            return;
+        }
+
+        $contents = json_decode($data, true);
+        
         $this->api_key = isset($contents['api-key']) ? $contents['api-key'] : "";
         $this->api_secret = isset($contents['api-secret']) ? $contents['api-secret'] : "";
         $this->useTestnet = isset($contents['use-testnet']) ? (bool)$contents['use-testnet'] : false;
@@ -160,10 +333,11 @@ class API
      * to load the acurlopts from the users home directory in the file
      * ~/jaggedsoft/php-binance-api.json
      *
-     * @param $file string file location
-     * @return null
+     * @param string $file
+     * 
+     * @return void
      */
-    protected function setupCurlOptsFromFile(string $file = null)
+    protected function setupCurlOptsFromFile(string $file = null): void
     {
         $file = is_null($file) ? getenv("HOME") . "/.config/jaggedsoft/php-binance-api.json" : $file;
 
@@ -175,7 +349,15 @@ class API
             echo "No curl options will be set" . PHP_EOL;
             return;
         }
-        $contents = json_decode(file_get_contents($file), true);
+
+        $data = file_get_contents($file);
+
+        if(!is_string($data)) {
+            echo "Couldn't load file";
+            return;
+        }
+
+        $contents = json_decode($data, true);
         $this->curlOpts = isset($contents['curlOpts']) && is_array($contents['curlOpts']) ? $contents['curlOpts'] : [];
     }
 
@@ -183,10 +365,12 @@ class API
      * If no paramaters are supplied in the constructor for the proxy confguration,
      * this function will attempt to load the proxy info from the users home directory
      * ~/jaggedsoft/php-binance-api.json
-     *
-     * @return null
+     * 
+     * @param string|null $file
+     * 
+     * @return void
      */
-    protected function setupProxyConfigFromFile(string $file = null)
+    protected function setupProxyConfigFromFile(string $file = null): void
     {
         $file = is_null($file) ? getenv("HOME") . "/.config/jaggedsoft/php-binance-api.json" : $file;
 
@@ -198,7 +382,15 @@ class API
             echo "No proxies will be used " . PHP_EOL;
             return;
         }
+
+        $data = file_get_contents($file);
+
+        if(!is_string($data)) {
+            return;
+        }
+
         $contents = json_decode(file_get_contents($file), true);
+
         if (isset($contents['proto']) === false) {
             return;
         }
@@ -208,9 +400,11 @@ class API
         if (isset($contents['port']) === false) {
             return;
         }
+
         $this->proxyConf['proto'] = $contents['proto'];
         $this->proxyConf['address'] = $contents['address'];
         $this->proxyConf['port'] = $contents['port'];
+
         if (isset($contents['user'])) {
             $this->proxyConf['user'] = isset($contents['user']) ? $contents['user'] : "";
         }
@@ -242,9 +436,10 @@ class API
      * @param $price string price per unit you want to spend
      * @param $type string type of order
      * @param $flags array addtional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function buy(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = [])
+    public function buy(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = []): array
     {
         return $this->order("BUY", $symbol, $quantity, $price, $type, $flags);
     }
@@ -259,9 +454,10 @@ class API
      * @param $price string price per unit you want to spend
      * @param $type string config
      * @param $flags array config
-     * @return array with error message or empty or the order details
+     * 
+     * @return array<mixed> with error message or empty or the order details
      */
-    public function buyTest(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = [])
+    public function buyTest(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = []): array
     {
         return $this->order("BUY", $symbol, $quantity, $price, $type, $flags, true);
     }
@@ -289,9 +485,10 @@ class API
      * @param $price string price per unit you want to spend
      * @param $type string type of order
      * @param $flags array addtional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function sell(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = [])
+    public function sell(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = []): array
     {
         return $this->order("SELL", $symbol, $quantity, $price, $type, $flags);
     }
@@ -306,9 +503,10 @@ class API
      * @param $price string price per unit you want to spend
      * @param $type array config
      * @param $flags array config
-     * @return array with error message or empty or the order details
+     * 
+     * @return array<mixed> with error message or empty or the order details
      */
-    public function sellTest(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = [])
+    public function sellTest(string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = []): array
     {
         return $this->order("SELL", $symbol, $quantity, $price, $type, $flags, true);
     }
@@ -322,9 +520,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity of the quote to use
      * @param $flags array additional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketQuoteBuy(string $symbol, $quantity, array $flags = [])
+    public function marketQuoteBuy(string $symbol, $quantity, array $flags = []): array
     {
         $flags['isQuoteOrder'] = true;
 
@@ -339,9 +538,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity of the quote to use
      * @param $flags array additional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketQuoteBuyTest(string $symbol, $quantity, array $flags = [])
+    public function marketQuoteBuyTest(string $symbol, $quantity, array $flags = []): array
     {
         $flags['isQuoteOrder'] = true;
 
@@ -357,9 +557,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity required
      * @param $flags array addtional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketBuy(string $symbol, $quantity, array $flags = [])
+    public function marketBuy(string $symbol, $quantity, array $flags = []): array
     {
         return $this->order("BUY", $symbol, $quantity, 0, "MARKET", $flags);
     }
@@ -372,27 +573,30 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity required
      * @param $flags array addtional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketBuyTest(string $symbol, $quantity, array $flags = [])
+    public function marketBuyTest(string $symbol, $quantity, array $flags = []): array
     {
         return $this->order("BUY", $symbol, $quantity, 0, "MARKET", $flags, true);
     }
-    
-    
+
+
     /**
      * numberOfDecimals() returns the signifcant digits level based on the minimum order amount.
      *
      * $dec = numberOfDecimals(0.00001); // Returns 5
      *
      * @param $val float the minimum order amount for the pair
+     * 
      * @return integer (signifcant digits) based on the minimum order amount
      */
-    public function numberOfDecimals($val = 0.00000001)
+    public function numberOfDecimals($val = 0.00000001): int
     {
         $val = sprintf("%.14f", $val);
         $parts = explode('.', $val);
         $parts[1] = rtrim($parts[1], "0");
+
         return strlen($parts[1]);
     }
 
@@ -405,9 +609,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity of the quote you want to obtain
      * @param $flags array additional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketQuoteSell(string $symbol, $quantity, array $flags = [])
+    public function marketQuoteSell(string $symbol, $quantity, array $flags = []): array
     {
         $flags['isQuoteOrder'] = true;
         $c = $this->numberOfDecimals($this->exchangeInfo()['symbols'][$symbol]['filters'][2]['minQty']);
@@ -424,9 +629,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity of the quote you want to obtain
      * @param $flags array additional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketQuoteSellTest(string $symbol, $quantity, array $flags = [])
+    public function marketQuoteSellTest(string $symbol, $quantity, array $flags = []): array
     {
         $flags['isQuoteOrder'] = true;
 
@@ -442,9 +648,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity required
      * @param $flags array addtional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketSell(string $symbol, $quantity, array $flags = [])
+    public function marketSell(string $symbol, $quantity, array $flags = []): array
     {
         $c = $this->numberOfDecimals($this->exchangeInfo()['symbols'][$symbol]['filters'][2]['minQty']);
         $quantity = $this->floorDecimal($quantity, $c);
@@ -460,9 +667,10 @@ class API
      * @param $symbol string the currency symbol
      * @param $quantity string the quantity required
      * @param $flags array addtional options for order type
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
      */
-    public function marketSellTest(string $symbol, $quantity, array $flags = [])
+    public function marketSellTest(string $symbol, $quantity, array $flags = []): array
     {
         return $this->order("SELL", $symbol, $quantity, 0, "MARKET", $flags, true);
     }
@@ -476,10 +684,12 @@ class API
      * @param $symbol string the currency symbol
      * @param $orderid string the orderid to cancel
      * @param $flags array of optional options like ["side"=>"sell"]
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
+     * 
      * @throws \Exception
      */
-    public function cancel(string $symbol, $orderid, $flags = [])
+    public function cancel(string $symbol, $orderid, $flags = []): array
     {
         $params = [
             "symbol" => $symbol,
@@ -496,10 +706,12 @@ class API
      *
      * @param $symbol string the currency symbol
      * @param $orderid string the orderid to cancel
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
+     * 
      * @throws \Exception
      */
-    public function orderStatus(string $symbol, $orderid)
+    public function orderStatus(string $symbol, $orderid): array
     {
         return $this->httpRequest("v3/order", "GET", [
             "symbol" => $symbol,
@@ -514,10 +726,12 @@ class API
      * $allBNBOrders = $api->openOrders( "BNBBTC" );
      *
      * @param $symbol string the currency symbol
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
+     * 
      * @throws \Exception
      */
-    public function openOrders(string $symbol = null)
+    public function openOrders(string $symbol = null): array
     {
         $params = [];
         if (is_null($symbol) != true) {
@@ -531,11 +745,14 @@ class API
     /**
      * Cancel all open orders method
      * $api->cancelOpenOrders( "BNBBTC" );
+     * 
      * @param $symbol string the currency symbol
-     * @return array with error message or the order details
+     * 
+     * @return array<mixed> with error message or the order details
+     * 
      * @throws \Exception
      */
-    public function cancelOpenOrders(string $symbol = null)
+    public function cancelOpenOrders(string $symbol = null): array
     {
         $params = [];
         if (is_null($symbol) != true) {
@@ -555,10 +772,12 @@ class API
      * @param $limit int the amount of orders returned
      * @param $fromOrderId string return the orders from this order onwards
      * @param $params array optional startTime, endTime parameters
-     * @return array with error message or array of orderDetails array
+     * 
+     * @return array<mixed> with error message or array of orderDetails array
+     * 
      * @throws \Exception
      */
-    public function orders(string $symbol, int $limit = 500, int $fromOrderId = 0, array $params = [])
+    public function orders(string $symbol, int $limit = 500, int $fromOrderId = 0, array $params = []): array
     {
         $params["symbol"] = $symbol;
         $params["limit"] = $limit;
@@ -580,10 +799,12 @@ class API
      * @param $fromTradeId int (optional) return the orders from this order onwards. negative for all
      * @param $startTime int (optional) return the orders from this time onwards. null to ignore
      * @param $endTime int (optional) return the orders from this time backwards. null to ignore
-     * @return array with error message or array of orderDetails array
+     * 
+     * @return array<mixed> with error message or array of orderDetails array
+     * 
      * @throws \Exception
      */
-    public function history(string $symbol, int $limit = 500, int $fromTradeId = -1, int $startTime = null, int $endTime = null)
+    public function history(string $symbol, int $limit = 500, int $fromTradeId = -1, int $startTime = null, int $endTime = null): array
     {
         $parameters = [
             "symbol" => $symbol,
@@ -607,10 +828,11 @@ class API
      *
      * $api->useServerTime();
      *
-     * @return null
+     * @return void
+     * 
      * @throws \Exception
      */
-    public function useServerTime()
+    public function useServerTime(): void
     {
         $request = $this->httpRequest("v3/time");
         if (isset($request['serverTime'])) {
@@ -623,10 +845,11 @@ class API
      *
      * $time = $api->time();
      *
-     * @return array with error message or array with server time key
+     * @return array<mixed> with error message or array with server time key
+     * 
      * @throws \Exception
      */
-    public function time()
+    public function time(): array
     {
         return $this->httpRequest("v3/time");
     }
@@ -646,10 +869,11 @@ class API
      *
      * @param string|array  $symbols  (optional)  A symbol or an array of symbols, default is empty
      *
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function exchangeInfo($symbols = null)
+    public function exchangeInfo($symbols = null): array
     {
         if (!$this->exchangeInfo) {
             $arr = array();
@@ -660,25 +884,25 @@ class API
                 if (gettype($symbols) == "string") {
                     $parameters["symbol"] = $symbols;
                     $arr = $this->httpRequest("v3/exchangeInfo", "GET", $parameters);
-                }                    
-                if (gettype($symbols) == "array")  {
+                }
+                if (gettype($symbols) == "array") {
                     $arr = $this->httpRequest('v3/exchangeInfo?symbols=' . '["' . implode('","', $symbols) . '"]');
                 }
             } else {
                 $arr = $this->httpRequest("v3/exchangeInfo");
             }
-            
+
             $this->exchangeInfo = $arr;
             $this->exchangeInfo['symbols'] = null;
-            
+
             foreach ($arr['symbols'] as $key => $value) {
                 $this->exchangeInfo['symbols'][$value['symbol']] = $value;
             }
         }
-        
+
         return $this->exchangeInfo;
     }
-    
+
     /**
      * assetDetail - Fetch details of assets supported on Binance
      * 
@@ -688,9 +912,9 @@ class API
      * 
      * @param string $asset  (optional)  Should be an asset, e.g. BNB or empty to get the full list
      *
-     * @return array containing the response
+     * @return array<mixed> containing the response
      */
-    public function assetDetail($asset = '')
+    public function assetDetail($asset = ''): array
     {
         $params["sapi"] = true;
         if ($asset != '' && gettype($asset) == 'string')
@@ -705,27 +929,26 @@ class API
             return array(
                 'success'     => 1,
                 'assetDetail' => $arr,
-                );
+            );
         } else {
             return array(
                 'success'     => 0,
                 'assetDetail' => array(),
-                );
-            
+            );
         }
     }
-    
+
     /**
      * userAssetDribbletLog - Log of the conversion of the dust assets to BNB
      * @deprecated
      */
-    public function userAssetDribbletLog()
+    public function userAssetDribbletLog(): array
     {
         $params["wapi"] = true;
         trigger_error('Deprecated - function will disappear on 2021-08-01 from Binance. Please switch to $api->dustLog().', E_USER_DEPRECATED);
         return $this->httpRequest("v3/userAssetDribbletLog.html", 'GET', $params, true);
     }
-    
+
     /**
      * dustLog - Log of the conversion of the dust assets to BNB
      * 
@@ -736,10 +959,11 @@ class API
      * @param long  $startTime  (optional)  Start time, e.g. 1617580799000
      * @param long  $endTime    (optional)  End time, e.g. 1617580799000. Endtime is mandatory if startTime is set.
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function dustLog($startTime = NULL, $endTime = NULL)
+    public function dustLog($startTime = NULL, $endTime = NULL): array
     {
         $params["sapi"] = true;
         if (!empty($startTime) && !empty($endTime)) {
@@ -759,17 +983,18 @@ class API
      * 
      * @param string|array  $assets  (mandatory)  Asset(s), e.g. IOST or array like ['IOST','AAVE','CHZ']
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function dustTransfer($assets)
+    public function dustTransfer($assets): array
     {
         $params["sapi"] = true;
         $params["asset"] = $assets;
 
         return $this->httpRequest("v1/asset/dust", 'POST', $params, true);
     }
-    
+
     /**
      * @deprecated
      *
@@ -778,19 +1003,20 @@ class API
      *
      * $symbol = "BNBBTC"; or any other symbol or even a set of symbols in an array
      * @param string $symbol
-     * @return mixed
+     * 
+     * @return array<mixed>
      */
-    public function tradeFee(string $symbol)
+    public function tradeFee(string $symbol): array
     {
         $params = [
             "symbol" => $symbol,
             "wapi" => true,
         ];
         trigger_error('Function tradeFee is deprecated and will be removed from Binance on Aug 1, 2021. Please use $api->commissionFee', E_USER_DEPRECATED);
-        
+
         return $this->httpRequest("v3/tradeFee.html", 'GET', $params, true);
     }
-    
+
     /**
      * commissionFee - Fetch commission trade fee
      * 
@@ -800,10 +1026,11 @@ class API
      * 
      * @param string $symbol  (optional)  Should be a symbol, e.g. BNBUSDT or empty to get the full list
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
-     */    
-    public function commissionFee($symbol = '')
+     */
+    public function commissionFee($symbol = ''): array
     {
         $params = array('sapi' => true);
         if ($symbol != '' && gettype($symbol) == 'string')
@@ -831,10 +1058,11 @@ class API
      * @param string $network             (optional)   
      * @param string $orderId             (optional)   Client id for withdraw
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function withdraw(string $asset, string $address, $amount, $addressTag = null, $addressName = "", bool $transactionFeeFlag = false, $network = null, $orderId = null)
+    public function withdraw(string $asset, string $address, $amount, $addressTag = null, $addressName = "", bool $transactionFeeFlag = false, $network = null, $orderId = null): array
     {
         $options = [
             "coin" => $asset,
@@ -850,7 +1078,7 @@ class API
             $options['addressTag'] = $addressTag;
         }
         if ($transactionFeeFlag) $options['transactionFeeFlag'] = true;
-        
+
         if (is_null($network) === false && empty($network) === false) {
             $options['network'] = $network;
         }
@@ -870,10 +1098,11 @@ class API
      * @param string $asset    (mandatory)  An asset, e.g. BTC
      * @param string $network  (optional)   You can get network in networkList from /sapi/v1/capital/config/getall   
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function depositAddress(string $asset, $network = null)
+    public function depositAddress(string $asset, $network = null): array
     {
         $params = [
             "sapi" => true,
@@ -882,13 +1111,13 @@ class API
         if (is_null($network) === false && empty($network) === false) {
             $params['network'] = $network;
         }
-        
+
         $return = $this->httpRequest("v1/capital/deposit/address", "GET", $params, true);
 
         // Adding for backwards compatibility with wapi
         $return['asset'] = $return['coin'];
         $return['addressTag'] = $return['tag'];
-        
+
         if (!empty($return['address'])) {
             $return['success'] = 1;
         } else {
@@ -908,10 +1137,11 @@ class API
      * @param string $asset    (optional)  An asset, e.g. BTC - or leave empty for all
      * @param array  $params   (optional)  An array of additional parameters that the API endpoint allows   
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function depositHistory(string $asset = null, array $params = [])
+    public function depositHistory(string $asset = null, array $params = []): array
     {
         $params["sapi"] = true;
         if (is_null($asset) === false) {
@@ -920,12 +1150,11 @@ class API
         $return = $this->httpRequest("v1/capital/deposit/hisrec", "GET", $params, true);
 
         // Adding for backwards compatibility with wapi
-        foreach ($return as $key=>$item) {
+        foreach ($return as $key => $item) {
             $return[$key]['asset'] = $item['coin'];
         }
-        
+
         return $return;
-        
     }
 
     /**
@@ -938,10 +1167,11 @@ class API
      * @param string $asset    (optional)  An asset, e.g. BTC - or leave empty for all
      * @param array  $params   (optional)  An array of additional parameters that the API endpoint allows: status, offset, limit, startTime, endTime  
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function withdrawHistory(string $asset = null, array $params = [])
+    public function withdrawHistory(string $asset = null, array $params = []): array
     {
         $params["sapi"] = true;
         if (is_null($asset) === false) {
@@ -950,8 +1180,8 @@ class API
         // Wrapping in array for backwards compatibility with wapi
         $return = array(
             'withdrawList' => $this->httpRequest("v1/capital/withdraw/history", "GET", $params, true)
-            );
-        
+        );
+
         // Adding for backwards compatibility with wapi
         $return['success'] = 1;
 
@@ -965,10 +1195,11 @@ class API
      * 
      * @param string $asset    (mandatory)  An asset, e.g. BTC
      * 
-     * @return array containing the response
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function withdrawFee(string $asset)
+    public function withdrawFee(string $asset): array
     {
         $return = $this->assetDetail();
 
@@ -984,10 +1215,11 @@ class API
      *
      * $ticker = $api->prices();
      *
-     * @return array with error message or array of all the currencies prices
+     * @return array<mixed> with error message or array of all the currencies prices
+     * 
      * @throws \Exception
      */
-    public function prices()
+    public function prices(): array
     {
         return $this->priceData($this->httpRequest("v3/ticker/price"));
     }
@@ -997,10 +1229,11 @@ class API
      *
      * $price = $api->price( "ETHBTC" );
      *
-     * @return array with error message or array with symbol price
+     * @return array<mixed> with error message or array with symbol price
+     * 
      * @throws \Exception
      */
-    public function price(string $symbol)
+    public function price(string $symbol): array
     {
         $ticker = $this->httpRequest("v3/ticker/price", "GET", ["symbol" => $symbol]);
 
@@ -1012,10 +1245,11 @@ class API
      *
      * $ticker = $api->bookPrices();
      *
-     * @return array with error message or array of all the book prices
+     * @return array<mixed> with error message or array of all the book prices
+     * 
      * @throws \Exception
      */
-    public function bookPrices()
+    public function bookPrices(): array
     {
         return $this->bookPriceData($this->httpRequest("v3/ticker/bookTicker"));
     }
@@ -1025,10 +1259,10 @@ class API
      *
      * $account = $api->account();
      *
-     * @return array with error message or array of all the account information
+     * @return array<mixed> with error message or array of all the account information
      * @throws \Exception
      */
-    public function account()
+    public function account(): array
     {
         return $this->httpRequest("v3/account", "GET", [], true);
     }
@@ -1039,10 +1273,12 @@ class API
      * $prevDay = $api->prevDay("BNBBTC");
      *
      * @param $symbol (optional) symbol to get the previous day change for
-     * @return array with error message or array of prevDay change
+     * 
+     * @return array<mixed> with error message or array of prevDay change
+     * 
      * @throws \Exception
      */
-    public function prevDay(string $symbol = null)
+    public function prevDay(string $symbol = null): array
     {
         $additionalData = [];
         if (is_null($symbol) === false) {
@@ -1059,16 +1295,18 @@ class API
      * $trades = $api->aggTrades("BNBBTC");
      *
      * @param $symbol string the symbol to get the trade information for
-     * @return array with error message or array of market history
+     * 
+     * @return array<mixed> with error message or array of market history
+     * 
      * @throws \Exception
      */
-    public function aggTrades(string $symbol)
+    public function aggTrades(string $symbol): array
     {
         return $this->tradesData($this->httpRequest("v1/aggTrades", "GET", [
             "symbol" => $symbol,
         ]));
     }
-    
+
     /**
      * historicalTrades - Get historical trades for a specific currency
      *
@@ -1082,10 +1320,10 @@ class API
      * @param int    $limit   (optional)  limit the amount of trades, default 500, max 1000
      * @param int    $tradeId (optional)  return the orders from this orderId onwards, negative to get recent ones
      *
-     * @return array containing the response
+     * @return array<mixed> containing the response
      * @throws \Exception
      */
-    public function historicalTrades(string $symbol, int $limit = 500, int $tradeId = -1)
+    public function historicalTrades(string $symbol, int $limit = 500, int $tradeId = -1): array
     {
         $parameters = [
             "symbol" => $symbol,
@@ -1111,10 +1349,12 @@ class API
      *
      * @param $symbol string the symbol to get the depth information for
      * @param $limit int set limition for number of market depth data
-     * @return array with error message or array of market depth
+     * 
+     * @return array<mixed> with error message or array of market depth
+     * 
      * @throws \Exception
      */
-    public function depth(string $symbol, int $limit = 100)
+    public function depth(string $symbol, int $limit = 100): array
     {
         if (is_int($limit) === false) {
             $limit = 100;
@@ -1141,10 +1381,12 @@ class API
      * $balances = $api->balances($ticker);
      *
      * @param bool $priceData array of the symbols balances are required for
-     * @return array with error message or array of balances
+     * 
+     * @return array<mixed> with error message or array of balances
+     * 
      * @throws \Exception
      */
-    public function balances($priceData = false)
+    public function balances($priceData = false): array
     {
         if (is_array($priceData) === false) {
             $priceData = false;
@@ -1166,14 +1408,16 @@ class API
 
     /**
      * coins get list coins
-     *
+     * 
      * $coins = $api->coins();
-     * @return array with error message or array containing coins
+     * 
+     * @return array<mixed> with error message or array containing coins
+     * 
      * @throws \Exception
      */
-    public function coins()
+    public function coins(): array
     {
-        return $this->httpRequest('v1/capital/config/getall', 'GET', [ 'sapi' => true ], true);
+        return $this->httpRequest('v1/capital/config/getall', 'GET', ['sapi' => true], true);
     }
 
     /**
@@ -1183,7 +1427,7 @@ class API
      *
      * @return string uri
      */
-    public function getProxyUriString()
+    public function getProxyUriString(): string
     {
         $uri = isset($this->proxyConf['proto']) ? $this->proxyConf['proto'] : "http";
         // https://curl.haxx.se/libcurl/c/CURLOPT_PROXY.html
@@ -1233,9 +1477,9 @@ class API
      *
      * $api->setProxy( $proxyconf );
      *
-     * @return null
+     * @return void
      */
-    public function setProxy(array $proxyconf)
+    public function setProxy(array $proxyconf): void
     {
         $this->proxyConf = $proxyconf;
     }
@@ -1253,10 +1497,12 @@ class API
      * @param $method string this should be typically GET, POST or DELETE
      * @param $params array addtional options for the request
      * @param $signed bool true or false sign the request with api secret
-     * @return array containing the response
+     * 
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    protected function httpRequest(string $url, string $method = "GET", array $params = [], bool $signed = false)
+    protected function httpRequest(string $url, string $method = "GET", array $params = [], bool $signed = false): array
     {
         if (function_exists('curl_init') === false) {
             throw new \Exception("Sorry cURL is not installed!");
@@ -1292,7 +1538,7 @@ class API
                 unset($params['wapi']);
                 $base = $this->wapi;
             }
-        
+
             if (isset($params['sapi'])) {
                 if ($this->useTestnet) {
                     throw new \Exception("sapi endpoints are not available in testnet");
@@ -1310,8 +1556,14 @@ class API
                 unset($params['bapi']);
                 $base = $this->bapi;
             }
+
             $query = $this->binance_build_query($params);
-            $query = str_replace([ '%40' ], [ '@' ], $query);//if send data type "e-mail" then binance return: [Signature for this request is not valid.]
+            $query = str_replace(['%40'], ['@'], $query); //if send data type "e-mail" then binance return: [Signature for this request is not valid.]
+
+            if (!is_string($query)) {
+                return [];
+            }
+
             $signature = hash_hmac('sha256', $query, $this->api_secret);
             if ($method === "POST") {
                 $endpoint = $base . $url;
@@ -1383,15 +1635,15 @@ class API
             // not outputing errors, hides it from users and ends up with tickets on github
             throw new \Exception('Curl error: ' . curl_error($curl));
         }
-    
+
         $header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
         $header = $this->get_headers_from_curl_response($output);
         $output = substr($output, $header_size);
-        
+
         curl_close($curl);
-        
+
         $json = json_decode($output, true);
-        
+
         $this->lastRequest = [
             'url' => $url,
             'method' => $method,
@@ -1401,18 +1653,18 @@ class API
         ];
 
         if (isset($header['x-mbx-used-weight'])) {
-            $this->setXMbxUsedWeight($header['x-mbx-used-weight']);
+            $this->xMbxUsedWeight = $header['x-mbx-used-weight'];
         }
 
         if (isset($header['x-mbx-used-weight-1m'])) {
-            $this->setXMbxUsedWeight1m($header['x-mbx-used-weight-1m']);
+            $this->xMbxUsedWeight1m = $header['x-mbx-used-weight-1m'];
         }
 
         if (isset($json['msg']) && !empty($json['msg'])) {
-            if ( $url != 'v1/system/status' && $url != 'v3/systemStatus.html' && $url != 'v3/accountStatus.html') {
+            if ($url != 'v1/system/status' && $url != 'v3/systemStatus.html' && $url != 'v3/accountStatus.html') {
                 // should always output error, not only on httpdebug
                 // not outputing errors, hides it from users and ends up with tickets on github
-                throw new \Exception('signedRequest error: '.print_r($output, true));
+                throw new \Exception('signedRequest error: ' . print_r($output, true));
             }
         }
         $this->transfered += strlen($output);
@@ -1427,15 +1679,16 @@ class API
      * 
      * @param array  $params  (mandatory)   Parameters to convert to http query
      * 
-     * @return array containing the response
+     * @return string containing the response
+     * 
      * @throws \Exception
      */
-    protected function binance_build_query($params = [])
+    protected function binance_build_query($params = []): string
     {
         $new_arr = array();
         $query_add = '';
-        foreach ($params as $label=>$item) {
-            if ( gettype($item) == 'array' ) {
+        foreach ($params as $label => $item) {
+            if (gettype($item) == 'array') {
                 foreach ($item as $arritem) {
                     $query_add = $label . '=' . $arritem . '&' . $query_add;
                 }
@@ -1447,15 +1700,16 @@ class API
         $query = $query_add . $query;
 
         return $query;
-    }    
-    
+    }
+
     /**
      * Converts the output of the CURL header to an array
      *
      * @param $header string containing the response
-     * @return array headers converted to an array
+     * 
+     * @return array<mixed> headers converted to an array
      */
-    public function get_headers_from_curl_response(string $header)
+    public function get_headers_from_curl_response(string $header): array
     {
         $headers = array();
         $header_text = substr($header, 0, strpos($header, "\r\n\r\n"));
@@ -1464,7 +1718,7 @@ class API
             if ($i === 0)
                 $headers['http_code'] = $line;
             else {
-                list ($key, $value) = explode(': ', $line);
+                list($key, $value) = explode(': ', $line);
                 $headers[$key] = $value;
             }
 
@@ -1487,10 +1741,12 @@ class API
      * @param $type string is determined by the symbol bu typicall LIMIT, STOP_LOSS_LIMIT etc.
      * @param $flags array additional transaction options
      * @param $test bool whether to test or not, test only validates the query
-     * @return array containing the response
+     * 
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function order(string $side, string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = [], bool $test = false)
+    public function order(string $side, string $symbol, $quantity, $price, string $type = "LIMIT", array $flags = [], bool $test = false): array
     {
         $opt = [
             "symbol" => $symbol,
@@ -1554,10 +1810,12 @@ class API
      * @param $limit int limit the amount of candles
      * @param $startTime string request candle information starting from here
      * @param $endTime string request candle information ending here
-     * @return array containing the response
+     * 
+     * @return array<mixed> containing the response
+     * 
      * @throws \Exception
      */
-    public function candlesticks(string $symbol, string $interval = "5m", int $limit = null, $startTime = null, $endTime = null)
+    public function candlesticks(string $symbol, string $interval = "5m", int $limit = null, $startTime = null, $endTime = null): array
     {
         if (!isset($this->charts[$symbol])) {
             $this->charts[$symbol] = [];
@@ -1605,9 +1863,10 @@ class API
      *
      * @param $array array of your balances
      * @param $priceData array of prices
-     * @return array containing the response
+     * 
+     * @return array<mixed> containing the response
      */
-    protected function balanceData(array $array, $priceData)
+    protected function balanceData(array $array, $priceData): array
     {
         $balances = [];
 
@@ -1690,9 +1949,10 @@ class API
      * $data = $this->balanceHandler( $json );
      *
      * @param $json array data to convert
-     * @return array
+     * 
+     * @return array<mixed>
      */
-    protected function balanceHandler(array $json)
+    protected function balanceHandler(array $json): array
     {
         $balances = [];
         foreach ($json as $item) {
@@ -1713,9 +1973,10 @@ class API
      * $data = $this->tickerStreamHandler( $json );
      *
      * @param $json object data to convert
-     * @return array
+     * 
+     * @return array<mixed>
      */
-    protected function tickerStreamHandler(\stdClass $json)
+    protected function tickerStreamHandler(\stdClass $json): array
     {
         return [
             "eventType" => $json->e,
@@ -1750,9 +2011,10 @@ class API
      * $data = $this->executionHandler( $json );
      *
      * @param \stdClass $json object data to convert
-     * @return array
+     * 
+     * @return array<mixed>
      */
-    protected function executionHandler(\stdClass $json)
+    protected function executionHandler(\stdClass $json): array
     {
         return [
             "symbol" => $json->s,
@@ -1778,9 +2040,10 @@ class API
      * @param $symbol string of your currency
      * @param $interval string the time interval
      * @param $ticks array of the canbles array
-     * @return array object of the chartdata
+     * 
+     * @return array<mixed> object of the chartdata
      */
-    protected function chartData(string $symbol, string $interval, array $ticks)
+    protected function chartData(string $symbol, string $interval, array $ticks): array
     {
         if (!isset($this->info[$symbol])) {
             $this->info[$symbol] = [];
@@ -1823,9 +2086,10 @@ class API
      * $tradesData = $this->tradesData($trades);
      *
      * @param $trades array of trade information
-     * @return array easier format for trade information
+     * 
+     * @return array<mixed> easier format for trade information
      */
-    protected function tradesData(array $trades)
+    protected function tradesData(array $trades): array
     {
         $output = [];
         foreach ($trades as $trade) {
@@ -1849,9 +2113,10 @@ class API
      * $bookPriceData = $this->bookPriceData($array);
      *
      * @param $array array book prices
-     * @return array easier format for book prices information
+     * 
+     * @return array<mixed> easier format for book prices information
      */
-    protected function bookPriceData(array $array)
+    protected function bookPriceData(array $array): array
     {
         $bookprices = [];
         foreach ($array as $obj) {
@@ -1871,9 +2136,10 @@ class API
      * $array = $this->priceData($array);
      *
      * @param $array array of prices
-     * @return array of key/value pairs
+     * 
+     * @return array<mixed> of key/value pairs
      */
-    protected function priceData(array $array)
+    protected function priceData(array $array): array
     {
         $prices = [];
         foreach ($array as $obj) {
@@ -1888,9 +2154,10 @@ class API
      * $cumulative = $api->cumulative($depth);
      *
      * @param $depth array cache array
-     * @return array cumulative depth cache
+     * 
+     * @return array<mixed> cumulative depth cache
      */
-    public function cumulative(array $depth)
+    public function cumulative(array $depth): array
     {
         $bids = [];
         $asks = [];
@@ -1923,9 +2190,10 @@ class API
      *
      * @param $chart array
      * @param $include_volume bool for inclusion of volume
-     * @return array highchart data
+     * 
+     * @return array<mixed> highchart data
      */
-    public function highstock(array $chart, bool $include_volume = false)
+    public function highstock(array $chart, bool $include_volume = false): array
     {
         $array = [];
         foreach ($chart as $timestamp => $obj) {
@@ -1950,15 +2218,13 @@ class API
      *
      * $first = $api->first($array);
      *
-     * @param $array array
+     * @param array<string> $array
+     * 
      * @return string key or null
      */
-    public function first(array $array)
+    public function first(array $array): ?string
     {
-        if (count($array) > 0) {
-            return array_keys($array)[0];
-        }
-        return null;
+        return $array[0] ?? null;
     }
 
     /**
@@ -1966,15 +2232,12 @@ class API
      *
      * $last = $api->last($array);
      *
-     * @param $array array
+     * @param array<string> $array
      * @return string key or null
      */
-    public function last(array $array)
+    public function last(array $array): ?string
     {
-        if (count($array) > 0) {
-            return array_keys(array_slice($array, -1))[0];
-        }
-        return null;
+        return count($array) > 0 ? array_keys(array_slice($array, -1))[0] : null;
     }
 
     /**
@@ -1982,10 +2245,11 @@ class API
      *
      * $outputString = $api->displayDepth($array);
      *
-     * @param $array array
+     * @param array $array
+     * 
      * @return string of the depth information
      */
-    public function displayDepth(array $array)
+    public function displayDepth(array $array): string
     {
         $output = '';
         foreach ([
@@ -2003,7 +2267,6 @@ class API
                 $quantity = str_pad(str_pad(number_format(rtrim($quantity, '.0')), 10, ' ', STR_PAD_LEFT), 15);
                 $output .= "{$price} {$quantity} {$total}" . PHP_EOL;
             }
-            // echo str_repeat('-', 32).PHP_EOL;
         }
         return $output;
     }
@@ -2015,9 +2278,10 @@ class API
      *
      * @param $symbol string to display
      * @param $json array of the depth infomration
-     * @return array of the depth information
+     * 
+     * @return array<mixed> of the depth information
      */
-    protected function depthData(string $symbol, array $json)
+    protected function depthData(string $symbol, array $json): array
     {
         $bids = $asks = [];
         foreach ($json['bids'] as $obj) {
@@ -2034,25 +2298,27 @@ class API
 
     /**
      * roundStep rounds quantity with stepSize
-     * @param $qty quantity
-     * @param $stepSize parameter from exchangeInfo
-     * @return rounded value. example: roundStep(1.2345, 0.1) = 1.2
+     * 
+     * @param int $qty
+     * @param float $stepSize parameter from exchangeInfo
+     * 
+     * @return float value. example: roundStep(1.2345, 0.1) = 1.2
      *
      */
-    public function roundStep($qty, $stepSize = 0.1)
+    public function roundStep(int $qty, float $stepSize = 0.1): float
     {
-        $precision = strlen(substr(strrchr(rtrim($stepSize, '0'), '.'), 1));
-        return round((($qty / $stepSize) | 0) * $stepSize, $precision);
+        return round((($qty / $stepSize) | 0) * $stepSize, strlen(substr(strrchr(rtrim($stepSize, '0'), '.'), 1)));
     }
 
     /**
      * roundTicks rounds price with tickSize
+     * 
      * @param $value price
      * @param $tickSize parameter from exchangeInfo
-     * @return rounded value. example: roundStep(1.2345, 0.1) = 1.2
-     *
+     * 
+     * @return string value. example: roundStep(1.2345, 0.1) = 1.2
      */
-    public function roundTicks($price, $tickSize)
+    public function roundTicks($price, $tickSize): string
     {
         $precision = strlen(rtrim(substr($tickSize, strpos($tickSize, '.', 1) + 1), '0'));
         return number_format($price, $precision, '.', '');
@@ -2065,7 +2331,7 @@ class API
      *
      * @return string showing the total transfered
      */
-    public function getTransfered()
+    public function getTransfered(): string
     {
         $base = log($this->transfered, 1024);
         $suffixes = array(
@@ -2085,7 +2351,7 @@ class API
      *
      * @return int get the total number of api calls
      */
-    public function getRequestCount()
+    public function getRequestCount(): int
     {
         return $this->requestCount;
     }
@@ -2095,10 +2361,12 @@ class API
      * also incrementes the api counter
      *
      * $apiCount = $api->addToTransfered( $int );
-     *
-     * @return null
+     * 
+     * @param int $int
+     * 
+     * @return void
      */
-    public function addToTransfered(int $int)
+    public function addToTransfered(int $int): void
     {
         $this->transfered += $int;
         $this->requestCount++;
@@ -2107,14 +2375,12 @@ class API
     /*
      * WebSockets
      */
-
     /**
      * depthHandler For WebSocket Depth Cache
-     *
-     * $this->depthHandler($json);
-     *
-     * @param $json array of depth bids and asks
-     * @return null
+     * 
+     * @param array $json
+     * 
+     * @return void
      */
     protected function depthHandler(array $json)
     {
@@ -2142,12 +2408,13 @@ class API
      *
      * $this->chartHandler($symbol, $interval, $json);
      *
-     * @param $symbol string to sort
-     * @param $interval string time
+     * @param string $symbol string to sort
+     * @param string $interval string time
      * @param \stdClass $json object time
-     * @return null
+     * 
+     * @return void
      */
-    protected function chartHandler(string $symbol, string $interval, \stdClass $json)
+    protected function chartHandler(string $symbol, string $interval, \stdClass $json): void
     {
         if (!$this->info[$symbol][$interval]['firstOpen']) { // Wait for /kline to finish loading
             $this->chartQueue[$symbol][$interval][] = $json;
@@ -2180,19 +2447,22 @@ class API
      *
      * $sorted = $api->sortDepth($symbol, $limit);
      *
-     * @param $symbol string to sort
-     * @param $limit int depth
-     * @return null
+     * @param string $symbol string to sort
+     * @param int $limit int depth
+     * 
+     * @return array<mixed>
      */
-    public function sortDepth(string $symbol, int $limit = 11)
+    public function sortDepth(string $symbol, int $limit = 11): array
     {
         $bids = $this->depthCache[$symbol]['bids'];
         $asks = $this->depthCache[$symbol]['asks'];
+
         krsort($bids);
         ksort($asks);
+
         return [
             "asks" => array_slice($asks, 0, $limit, true),
-            "bids" => array_slice($bids, 0, $limit, true),
+            "bids" => array_slice($bids, 0, $limit, true)
         ];
     }
 
@@ -2215,9 +2485,10 @@ class API
      *
      * @param $symbol string optional array of symbols
      * @param $callback callable closure
-     * @return null
+     * 
+     * @return void
      */
-    public function depthCache($symbols, callable $callback)
+    public function depthCache($symbols, callable $callback): void
     {
         if (!is_array($symbols)) {
             $symbols = [
@@ -2276,12 +2547,12 @@ class API
             });
             $this->depth($symbol, 100);
             foreach ($this->depthQueue[$symbol] as $data) {
-                //TODO:: WTF ??? where is json and what should be in it ??
-                $this->depthHandler($json);
+                $this->depthHandler([]);
             }
             $this->depthQueue[$symbol] = [];
             call_user_func($callback, $this, $symbol, $this->depthCache[$symbol]);
         }
+
         $loop->run();
     }
 
@@ -2413,10 +2684,12 @@ class API
      * @param $interval string time inteval
      * @param $callback callable closure
      * @param $limit int default 500, maximum 1000
-     * @return null
+     * 
+     * @return void
+     * 
      * @throws \Exception
      */
-    public function chart($symbols, string $interval = "30m", callable $callback = null, $limit = 500)
+    public function chart($symbols, string $interval = "30m", callable $callback = null, $limit = 500): void
     {
         if (is_null($callback)) {
             throw new Exception("You must provide a valid callback");
@@ -2497,7 +2770,9 @@ class API
      * @param $symbols string required symbols
      * @param $interval string time inteval
      * @param $callback callable closure
+     * 
      * @return null
+     * 
      * @throws \Exception
      */
     public function kline($symbols, string $interval = "30m", callable $callback = null)
@@ -2608,10 +2883,12 @@ class API
      *
      * @param $balance_callback callable function
      * @param bool $execution_callback callable function
-     * @return null
+     * 
+     * @return void
+     * 
      * @throws \Exception
      */
-    public function userData(&$balance_callback, &$execution_callback = false)
+    public function userData(&$balance_callback, &$execution_callback = false): void
     {
         $response = $this->httpRequest("v1/userDataStream", "POST", []);
         $this->listenKey = $response['listenKey'];
@@ -2621,7 +2898,7 @@ class API
         $this->subscriptions['@userdata'] = true;
 
         $loop = \React\EventLoop\Factory::create();
-        $loop->addPeriodicTimer(30*60, function () {
+        $loop->addPeriodicTimer(30 * 60, function () {
             $listenKey = $this->listenKey;
             $this->httpRequest("v1/userDataStream?listenKey={$listenKey}", "PUT", []);
         });
@@ -2668,9 +2945,9 @@ class API
      * });
      *
      * @param $callback callable function closer that takes 2 arguments, $pai and $ticker data
-     * @return null
+     * @return void
      */
-    public function miniTicker(callable $callback)
+    public function miniTicker(callable $callback): void
     {
         $endpoint = '@miniticker';
         $this->subscriptions[$endpoint] = true;
@@ -2719,9 +2996,9 @@ class API
      * });
      *
      * @param $callback callable function closer that takes 2 arguments, $api and $ticker data
-     * @return null
+     * @return void
      */
-    public function bookTicker(callable $callback)
+    public function bookTicker(callable $callback): void
     {
         $endpoint = '!bookticker';
         $this->subscriptions[$endpoint] = true;
@@ -2762,8 +3039,10 @@ class API
      * Due to ongoing issues with out of date wamp CA bundles
      * This function downloads ca bundle for curl website
      * and uses it as part of the curl options
+     * 
+     * @return void
      */
-    protected function downloadCurlCaBundle()
+    protected function downloadCurlCaBundle(): void
     {
         $output_filename = getcwd() . "/ca.pem";
 
@@ -2806,46 +3085,32 @@ class API
         fwrite($fp, $result);
         fclose($fp);
     }
-    
-    protected function floorDecimal($n, $decimals=2)
+
+    /**
+     * @param mixed $n
+     * @param mixed $decimals=2
+     * 
+     * @return float
+     */
+    protected function floorDecimal($n, $decimals = 2): float
     {
         return floor($n * pow(10, $decimals)) / pow(10, $decimals);
     }
 
-
-    protected function setXMbxUsedWeight(int $usedWeight) : void
-    {
-        $this->xMbxUsedWeight = $usedWeight;
-    }
-
-    protected function setXMbxUsedWeight1m(int $usedWeight1m) : void
-    {
-        $this->xMbxUsedWeight1m = $usedWeight1m;
-    }
-
-    public function getXMbxUsedWeight() : int
-    {
-        $this->xMbxUsedWeight;
-    }
-
-    public function getXMbxUsedWeight1m() : int
-    {
-        $this->xMbxUsedWeight1m;
-    }
-
-    private function getRestEndpoint() : string
+    /**
+     * @return string
+     */
+    private function getRestEndpoint(): string
     {
         return $this->useTestnet ? $this->baseTestnet : $this->base;
     }
 
-    private function getWsEndpoint() : string
+    /**
+     * @return string
+     */
+    private function getWsEndpoint(): string
     {
         return $this->useTestnet ? $this->streamTestnet : $this->stream;
-    }
-
-    public function isOnTestnet() : bool
-    {
-        return $this->useTestnet;
     }
 
     /**
@@ -2859,20 +3124,18 @@ class API
      * @return array containing the response
      * @throws \Exception
      */
-    public function systemStatus()
+    public function systemStatus(): array
     {
-        $arr = array();
         $api_status = $this->httpRequest("v3/ping", 'GET');
-        if ( empty($api_status) ) {
-            $arr['api']['status']  = 'ping ok';    
-        } else {
-            $arr['api']['status']  = $api_status;    
-        }
-         
-        $arr['sapi'] = $this->httpRequest("v1/system/status", 'GET', [ 'sapi' => true ], true);
-        return $arr;
+
+        return [
+            'api' => [
+                'status' => empty($api_status) ? 'ping ok' : $api_status
+            ],
+            'sapi' => $this->httpRequest("v1/system/status", 'GET', ['sapi' => true], true)
+        ];
     }
-    
+
     /**
      * accountSnapshot - Daily Account Snapshot at 00:00:00 UTC
      * 
@@ -2888,26 +3151,26 @@ class API
      * @return array containing the response
      * @throws \Exception
      */
-    public function accountSnapshot($type, $nbrDays = 5, $startTime = 0, $endTime = 0)
+    public function accountSnapshot($type, $nbrDays = 5, $startTime = 0, $endTime = 0): array
     {
         if ($nbrDays < 5 || $nbrDays > 30)
             $nbrDays = 5;
-            
+
         $params = [
             'sapi' => true,
             'type' => $type,
-            ];
-            
+        ];
+
         if ($startTime > 0)
             $params['startTime'] = $startTime;
         if ($endTime > 0)
             $params['endTime'] = $startTime;
         if ($nbrDays != 5)
             $params['limit'] = $nbrDays;
-            
+
         return $this->httpRequest("v1/accountSnapshot", 'GET', $params, true);
     }
-    
+
     /**
      * accountStatus - Fetch account status detail.
      * 
@@ -2918,13 +3181,13 @@ class API
      * @return array containing the response
      * @throws \Exception
      */
-    public function accountStatus()
+    public function accountStatus(): array
     {
-        $arr = array();
-        $arr['sapi'] = $this->httpRequest("v1/account/status", 'GET', [ 'sapi' => true ], true);
-        return $arr;
+        return [
+            'sapi' => $this->httpRequest("v1/account/status", 'GET', ['sapi' => true], true)
+        ];
     }
-    
+
     /**
      * apiTradingStatus - Fetch account API trading status detail.
      * 
@@ -2935,13 +3198,13 @@ class API
      * @return array containing the response
      * @throws \Exception
      */
-    public function apiTradingStatus()
+    public function apiTradingStatus(): array
     {
-        $arr = array();
-        $arr['sapi'] = $this->httpRequest("v1/account/apiTradingStatus", 'GET', [ 'sapi' => true ], true);
-        return $arr;
+        return [
+            'sapi' => $this->httpRequest("v1/account/apiTradingStatus", 'GET', ['sapi' => true], true)
+        ];
     }
-    
+
     /**
      * ocoOrder - Create a new OCO order
      * 
@@ -2992,7 +3255,7 @@ class API
 
         if (is_null($stoplimitprice) === false && empty($stoplimitprice) === false) {
             $opt['stopLimitPrice'] = $stoplimitprice;
-            if ( ($stoplimittimeinforce == 'FOK') || ($stoplimittimeinforce == 'IOC') ) {
+            if (($stoplimittimeinforce == 'FOK') || ($stoplimittimeinforce == 'IOC')) {
                 $opt['stopLimitTimeInForce'] = $stoplimittimeinforce;
             } else {
                 $opt['stopLimitTimeInForce'] = 'GTC'; // `Good 'till cancel`. Needed if flag `stopLimitPrice` used.
@@ -3000,33 +3263,32 @@ class API
         }
 
         // Check other flags
-        foreach (array('icebergQty','stopIcebergQty','listClientOrderId','limitClientOrderId','stopClientOrderId','newOrderRespType') as $flag) {
-            if ( isset($flags[$flag]) && !empty($flags[$flag]) )
+        foreach (array('icebergQty', 'stopIcebergQty', 'listClientOrderId', 'limitClientOrderId', 'stopClientOrderId', 'newOrderRespType') as $flag) {
+            if (isset($flags[$flag]) && !empty($flags[$flag]))
                 $opt[$flag] = $flags[$flag];
         }
 
         return $this->httpRequest("v3/order/oco", "POST", $opt, true);
-    }    
-
-    /**
-    * avgPrice - get the average price of a symbol based on the last 5 minutes
-    *
-    * $avgPrice = $api->avgPrice( "ETHBTC" );
-    *
-    * @property int $weight 1
-    *
-    * @param string $symbol (mandatory) a symbol, e.g. ETHBTC
-    *
-    * @return string with symbol price
-    * @throws \Exception
-    */
-    public function avgPrice(string $symbol)
-    {
-        $ticker = $this->httpRequest("v3/avgPrice", "GET", ["symbol" => $symbol]);
-        return $ticker['price'];
     }
 
-      
+    /**
+     * avgPrice - get the average price of a symbol based on the last 5 minutes
+     *
+     * $avgPrice = $api->avgPrice( "ETHBTC" );
+     *
+     * @property int $weight 1
+     *
+     * @param string $symbol (mandatory) a symbol, e.g. ETHBTC
+     *
+     * @return string with symbol price
+     * @throws \Exception
+     */
+    public function avgPrice(string $symbol)
+    {
+        return $this->httpRequest("v3/avgPrice", "GET", ["symbol" => $symbol])['price'];
+    }
+
+
     /*********************************************
      * 
      * Binance Liquid Swap (bswap) functions
@@ -3036,25 +3298,24 @@ class API
      *********************************************/
 
     /**
-    * bswapQuote - Request a quote for swap of quote asset (selling) or base asset (buying), essentially price/exchange rates.
-    *
-    * @property int $weight 2
-    *
-    * @param string $baseAsset  (mandatory) e.g. ETH
-    * @param string $quoteAsset (mandatory) e.g. BTC
-    * @param string $quoteQty   (mandatory)
-    *
-    * @return array containing the response
-    * @throws \Exception
-    */
-    public function bswapQuote($baseAsset, $quoteAsset, $quoteQty) {
-        $opt = [
+     * bswapQuote - Request a quote for swap of quote asset (selling) or base asset (buying), essentially price/exchange rates.
+     *
+     * @property int $weight 2
+     *
+     * @param string $baseAsset  (mandatory) e.g. ETH
+     * @param string $quoteAsset (mandatory) e.g. BTC
+     * @param string $quoteQty   (mandatory)
+     *
+     * @return array containing the response
+     * @throws \Exception
+     */
+    public function bswapQuote($baseAsset, $quoteAsset, $quoteQty)
+    {
+        return $this->httpRequest("v1/bswap/quote", 'GET', [
             'sapi'       => true,
             'quoteAsset' => $quoteAsset,
             'baseAsset'  => $baseAsset,
             'quoteQty'   => $quoteQty,
-        ];
-      
-        return $this->httpRequest("v1/bswap/quote", 'GET', $opt, true);
+        ], true);
     }
 }

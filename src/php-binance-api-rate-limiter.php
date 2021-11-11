@@ -30,17 +30,55 @@ if (version_compare(phpversion(), '7.0', '<=')) {
 
 class RateLimiter
 {
+    /**
+     * @var API
+     */
     private $api = null;
-    private $weights = null;
-    private $ordersfunctions = null;
-    private $exchangeRequestsRateLimit = 10;
-    private $exchangeOrdersRateLimit = 10;
-    private $exchangeOrdersDailyLimit = 10;
+
+    /**
+     * @var array<string,int>
+     */
+    private $weights = [];
+    
+    /**
+     * @var array<string>
+     */
+    private array $ordersfunctions = [];
+    
+    /**
+     * @var float
+     */
+    private float $exchangeRequestsRateLimit = 10;
+    
+    /**
+     * @var float
+     */
+    private float $exchangeOrdersRateLimit = 10;
+    
+    /**
+     * @var float
+     */
+    private float $exchangeOrdersDailyLimit = 10;
+    
+    /**
+     * @var int[]
+     */
     private $requestsQueue = array();
+    
+    /**
+     * @var int[]
+     */
     private $ordersQueue = array();
+    
+    /**
+     * @var int[]
+     */
     private $ordersDayQueue = array();
 
-    public function __construct($api)
+    /**
+     * @param API $api
+     */
+    public function __construct(API $api)
     {
         $this->api = $api;
 
@@ -120,7 +158,10 @@ class RateLimiter
         $this->init();
     }
 
-    private function init()
+    /**
+     * @return void
+     */
+    private function init(): void
     {
         $exchangeLimits = $this->api->exchangeInfo()['rateLimits'];
 
@@ -149,26 +190,32 @@ class RateLimiter
     /**
      * magic get for private and protected members
      *
-     * @param $file string the name of the property to return
-     * @return null
+     * @param string $member string the name of the property to return
+     * 
+     * @return mixed
      */
-    public function __get(string $member)
+    public function __get(string $member): mixed
     {
-        return $this->api->$member;
+        return property_exists($this->api, $member) ? $this->api->$member : null;
     }
 
     /**
      * magic set for private and protected members
      *
-     * @param $member string the name of the member property
-     * @param $value the value of the member property
+     * @param string $member string the name of the member property
+     * @param mixed $value the value of the member property
+     * 
+     * @return void
      */
-    public function __set(string $member, $value)
+    public function __set(string $member, mixed $value): void
     {
         $this->api->$member = $value;
     }
 
-    private function requestsPerMinute()
+    /**
+     * @return void
+     */
+    private function requestsPerMinute(): void
     {
         // requests per minute restrictions
         if (count($this->requestsQueue) === 0) {
@@ -186,7 +233,10 @@ class RateLimiter
         }
     }
 
-    private function ordersPerSecond()
+    /**
+     * @return void
+     */
+    private function ordersPerSecond(): void
     {
         // orders per second restrictions
         if (count($this->ordersQueue) === 0) {
@@ -204,7 +254,10 @@ class RateLimiter
         }
     }
 
-    private function ordersPerDay()
+    /**
+     * @return void
+     */
+    private function ordersPerDay(): void
     {
         // orders per day restrictions
         if (count($this->ordersDayQueue) === 0) {
@@ -224,7 +277,7 @@ class RateLimiter
             $remainingSeconds = $this->ordersDayQueue[0] - $yesterday;
 
             $sleepTime = ($remainingSeconds > $remainingRequests) ? round($remainingSeconds / $remainingRequests) : 1;
-            sleep($sleepTime);
+            sleep((int) $sleepTime);
         }
     }
 
@@ -234,7 +287,13 @@ class RateLimiter
      * @param $name the function to call
      * @param $arguments the paramters to the function
      */
-    public function __call(string $name, array $arguments)
+    /**
+     * @param string $name
+     * @param array<mixed> $arguments
+     * 
+     * @return mixed
+     */
+    public function __call(string $name, array $arguments): mixed
     {
         $weight = $this->weights[$name] ?? false;
 
@@ -259,6 +318,9 @@ class RateLimiter
             }
         }
         
+        /**
+         * @phpstan-ignore-next-line
+         */
         return call_user_func_array(array(&$this->api, $name), $arguments);
     }
 }
